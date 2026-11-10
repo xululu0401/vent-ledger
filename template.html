@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>通风对账台 · 关窗睡一晚有多闷、开窗几分钟能压下来</title>
+<meta name="description" content="关着窗睡一晚、关着窗开一上午会，屋里的 CO₂ 会涨到多少？开窗几分钟能压下来？要装多大新风才够？把房间的 CO₂ 收支摊成一本可以复算的账：逐段解析解、24 小时曲线、稳定日循环、超标时长、所需新风量反推，全部自己填，页面不联网。">
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --ink:#161b22; --ink2:#4a5568; --ink3:#7b8794;
+    --line:#e3e6eb; --line2:#cbd2da; --brand:#0f5fa6; --brand2:#eaf2fa;
+    --good:#0f7b52; --goodbg:#e8f6ef; --warn:#9a5b00; --warnbg:#fff5e5; --bad:#b42318; --badbg:#fdeceb;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font:15px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+  .app{max-width:1340px;margin:0 auto;padding:22px 18px 60px;display:grid;grid-template-columns:432px minmax(0,1fr);gap:18px;align-items:start}
+  .app > *{min-width:0}
+  header.top{grid-column:1/-1;padding:4px 2px 0}
+  h1{margin:0 0 6px;font-size:26px;letter-spacing:.2px}
+  .lede{margin:0;color:var(--ink2);max-width:960px}
+  .badges{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px}
+  .badge{font-size:12px;padding:3px 9px;border-radius:999px;background:#fff;border:1px solid var(--line2);color:var(--ink2)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 14px;margin:0 0 14px;box-shadow:0 1px 2px rgba(16,32,64,.04)}
+  .card h2{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .card h3{margin:16px 0 8px;font-size:14px;color:var(--ink2)}
+  .tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--brand2);color:var(--brand);border:1px solid #d3e3f5}
+  .tag.gray{background:#f1f3f6;color:var(--ink2);border-color:var(--line2)}
+  .field{margin-bottom:11px}
+  .field label{display:block;font-size:13px;color:var(--ink2);margin-bottom:4px}
+  .field label .sub{color:var(--ink3);font-size:12px}
+  input[type=text],select{width:100%;padding:8px 10px;border:1px solid var(--line2);border-radius:9px;font-size:14px;background:#fff;color:var(--ink);font-variant-numeric:tabular-nums}
+  input[type=text]:focus,select:focus{outline:2px solid #bcd8f0;border-color:var(--brand)}
+  input.bad,select.bad{border-color:var(--bad);background:var(--badbg)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .gridf{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+  .gridf label{display:block;font-size:11.5px;color:var(--ink3);line-height:1.4}
+  .gridf input,.gridf select{width:100%;padding:6px 8px;font-size:13px}
+  button{font:inherit;font-size:13px;padding:8px 12px;border-radius:9px;border:1px solid var(--line2);background:#fff;color:var(--ink);cursor:pointer}
+  button:hover{background:#f7f9fb}
+  button.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+  button.primary:hover{background:#0d4f8a}
+  button.tiny{font-size:12px;padding:4px 8px}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .btns > *{min-width:0}
+  .footnote{font-size:12px;color:var(--ink3);margin-top:8px;line-height:1.55}
+  table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  th{color:var(--ink2);font-weight:600;background:#fafbfc;font-size:12px}
+  th:first-child,td:first-child{text-align:left;white-space:normal;word-break:break-word}
+  tbody tr.pick{cursor:pointer}
+  tbody tr.pick:hover{background:#f7f9fb}
+  tbody tr.sel{background:var(--brand2)}
+  tr.sum td{font-weight:700;background:#fafbfc}
+  .tw{overflow-x:auto;max-width:100%}
+  #segTable{table-layout:fixed;min-width:628px}
+  #segTable th:nth-child(1),#segTable td:nth-child(1){width:150px}
+  #segTable th:nth-child(2),#segTable td:nth-child(2){width:96px}
+  #segTable th:nth-child(3),#segTable td:nth-child(3){width:70px}
+  #segTable th:nth-child(4),#segTable td:nth-child(4){width:48px}
+  #segTable th:nth-child(5),#segTable td:nth-child(5){width:64px}
+  #segTable th:nth-child(6),#segTable td:nth-child(6){width:56px}
+  #segTable th:nth-child(7),#segTable td:nth-child(7){width:74px}
+  #segTable th:nth-child(8),#segTable td:nth-child(8){width:74px}
+  #sensTable{min-width:560px}
+  #revTable{min-width:520px}
+  .pill{display:inline-block;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid}
+  .pill.ok{background:var(--goodbg);color:var(--good);border-color:#bfe3d2}
+  .pill.tight{background:var(--warnbg);color:var(--warn);border-color:#f0d9b5}
+  .pill.bad{background:var(--badbg);color:var(--bad);border-color:#f3c6c3}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:10px;margin:2px 0 6px}
+  .kpi{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0}
+  .kpi .lab{font-size:11.5px;color:var(--ink3)}
+  .kpi .val{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-word;line-height:1.3}
+  .kpi .note{font-size:11.5px;color:var(--ink3);margin-top:2px}
+  .kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:13.5px}
+  .kv .k{color:var(--ink3)}
+  .ins{margin:0;padding:0;list-style:none}
+  .ins li{padding:9px 0;border-bottom:1px dashed var(--line)}
+  .ins li:last-child{border-bottom:0}
+  .ins b{display:block;font-size:14px;margin-bottom:2px}
+  .ins span{color:var(--ink2);font-size:13px}
+  .steps{margin:0;padding-left:20px}
+  .steps li{margin:5px 0;font-size:13.5px;color:var(--ink2)}
+  .warnbox{background:var(--warnbg);border:1px solid #f0d9b5;border-radius:10px;padding:10px 12px;font-size:13px;color:#6b3f00;margin-top:8px}
+  .errbox{background:var(--badbg);border:1px solid #f3c6c3;border-radius:10px;padding:10px 12px;font-size:13px;color:#7a1a12;margin-bottom:10px}
+  .errbox ul{margin:6px 0 0;padding-left:18px}
+  .okbox{background:var(--goodbg);border:1px solid #bfe3d2;border-radius:10px;padding:10px 12px;font-size:13px;color:#0b5c3e;margin-top:8px}
+  #chartWrap{border:1px solid var(--line);border-radius:10px;background:#fff;padding:6px 4px 2px}
+  #chart{display:block;width:100%;height:auto}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--ink2);margin:6px 2px 0}
+  .legend i{display:inline-block;width:13px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  .checks{font-size:12.5px}
+  .checks li{margin:3px 0;color:var(--ink2);word-break:break-word}
+  .checks li b{color:var(--ink)}
+  .checks .no{color:var(--bad)}
+  .item{border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:9px;background:#fcfdfe}
+  .itemhead{display:grid;grid-template-columns:auto minmax(0,1fr) 104px 92px;gap:6px;align-items:center;margin-bottom:7px}
+  .itemhead .idx{font-size:12px;color:var(--ink3);white-space:nowrap}
+  .itemhead input,.itemhead select{padding:5px 7px;font-size:13px}
+  .segsum{font-size:12.5px;color:var(--ink2);margin:2px 0 8px}
+  .segsum b{font-variant-numeric:tabular-nums}
+  .segsum .bad{color:var(--bad);font-weight:700}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#161b22;color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:99;max-width:86vw;text-align:center}
+  .toggle{display:inline-flex;border:1px solid var(--line2);border-radius:999px;overflow:hidden}
+  .toggle button{border:0;border-radius:0;padding:5px 12px;font-size:12.5px;background:#fff}
+  .toggle button.on{background:var(--brand);color:#fff;font-weight:600}
+  details.note{font-size:12.5px;color:var(--ink2);margin-top:8px}
+  details.note summary{cursor:pointer;color:var(--brand)}
+  details.note p{margin:6px 0 0}
+  code{background:#f1f3f6;border-radius:4px;padding:1px 4px;font-size:12.5px}
+  @media (max-width:900px){
+    .app{grid-template-columns:minmax(0,1fr);padding:16px 12px 48px}
+    h1{font-size:22px}
+    .itemhead{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-auto-rows:auto}
+    .itemhead .idx{grid-column:1/-1}
+  }
+  @media print{
+    body{background:#fff}
+    .btns,button,#toast,select{display:none!important}
+    .card{break-inside:avoid;box-shadow:none}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>通风对账台</h1>
+    <p class="lede">关着窗睡一晚、关着窗开一上午会，屋里的 CO₂ 会涨到多少？开窗几分钟能压下来？要装多大新风才够？——把房间里的 CO₂ <b>收支平衡</b>摊成一本可以逐段复算的账：每段的通风量、时间常数、稳态、段末浓度、超标时长，外加「压到目标需要多大风量」的反推。全部自己填，页面不联网。</p>
+    <div class="badges">
+      <span class="badge">单区完全混合 · 一阶线性质量平衡</span>
+      <span class="badge">段内闭式解 + 独立数值积分对拍</span>
+      <span class="badge">15 项结构自检每次重算都跑</span>
+      <span class="badge">不引用也不替代任何标准条款</span>
+      <span class="badge">默认数据与 9 个内置场景都是虚构示例</span>
+    </div>
+  </header>
+
+  <section class="left">
+    <div class="card">
+      <h2>① 房间与目标 <span class="tag gray" id="vTag">—</span></h2>
+      <div class="row2">
+        <div class="field"><label>房间面积（㎡）</label><input type="text" id="area"></div>
+        <div class="field"><label>净层高（m）</label><input type="text" id="height"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>初始 CO₂ 浓度（ppm）<span class="sub">推演起点</span></label><input type="text" id="c0"></div>
+        <div class="field"><label>室外 / 新风 CO₂（ppm）</label><input type="text" id="cAtm"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>目标浓度（ppm）<span class="sub">判定阈值</span></label><input type="text" id="target"></div>
+        <div class="field"><label>一天从几点开始（HH:MM）</label><input type="text" id="startAt"></div>
+      </div>
+      <p class="footnote">房间体积 <b id="volTxt">—</b> = 面积 × 净层高。目标浓度既是判定阈值，也是反推「要多大风量」的目标；它必须比室外浓度高至少 50 ppm。</p>
+    </div>
+
+    <div class="card">
+      <h2>② 通风条件</h2>
+      <div class="row2">
+        <div class="field"><label>关窗换气次数（次/h）</label><input type="text" id="achClosed"></div>
+        <div class="field"><label>开窗换气次数（次/h）</label><input type="text" id="achOpen"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>机械新风量（m³/h）</label><input type="text" id="vent"></div>
+        <div class="field"><label>净化器 CADR（m³/h）<span class="sub">只做对照</span></label><input type="text" id="cadr"></div>
+      </div>
+      <p class="footnote">通风量 <code>Q = 换气次数 × 体积 + 机械新风</code>。关窗 / 开窗是按每段选的，所以这两个数分别对应两种状态。<b>净化器 CADR 不进这本账</b>——滤网不认 CO₂，填它只是为了让你亲眼看到账一点不变。</p>
+      <p class="footnote">换气次数量级参考（<b>设计假设，不是任何标准的限值</b>）：密封新窗 ≈ 0.2、普通门窗 ≈ 0.3、留一条门缝 ≈ 0.8、老房子 ≈ 0.6–1.2、大开窗通风 ≈ 8–20。</p>
+    </div>
+
+    <div class="card">
+      <h2>③ 每人 CO₂ 产生率 <span class="tag">可改</span></h2>
+      <div class="gridf">
+        <label>睡眠（L/min）<input type="text" id="g-sleep"></label>
+        <label>静坐（L/min）<input type="text" id="g-sit"></label>
+        <label>轻活动（L/min）<input type="text" id="g-light"></label>
+        <label>中等活动（L/min）<input type="text" id="g-medium"></label>
+        <label>运动（L/min）<input type="text" id="g-sport"></label>
+      </div>
+      <p class="footnote">这 5 个默认值是<b>设计假设</b>（人体代谢 CO₂ 呼出量的常见量级），不是本页实测数据，也不是任何标准的限值。换一组数，结论就会变——所以它们放在输入区。</p>
+    </div>
+
+    <div class="card">
+      <h2>④ 一天的时段表 <span class="tag gray" id="segCount">—</span></h2>
+      <p class="footnote">每段填时长（小时）、人数、活动强度、这段是关窗还是开窗；开始时刻由上面「一天从几点开始」加上前面各段时长自动推出来。合计必须正好 24.00 h。</p>
+      <div id="segments"></div>
+      <div class="segsum">合计 <b id="segTotal">—</b> <span id="segGap"></span></div>
+      <div class="btns">
+        <button id="btnAddSeg" class="tiny">加一段</button>
+        <button id="btnDelSeg" class="tiny">删最后一段</button>
+        <button id="btnFill24" class="tiny">把差值补到最后一段</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>⑤ 场景与文件</h2>
+      <div class="field"><label>内置场景（全部为虚构示例）</label><select id="scenario"></select></div>
+      <div class="btns">
+        <button id="btnReset">恢复默认</button>
+        <button id="btnSave">保存到本机</button>
+        <button id="btnLoad">读取本机</button>
+      </div>
+      <div class="btns" style="margin-top:8px">
+        <label class="tiny" style="display:inline-block;border:1px solid var(--line2);border-radius:9px;padding:8px 12px;cursor:pointer;font-size:13px">
+          导入备份 JSON<input type="file" id="importFile" accept=".json,application/json" style="display:none">
+        </label>
+      </div>
+      <div class="btns" style="margin-top:8px">
+        <button id="btnCsv">导出 CSV</button>
+        <button id="btnMd">导出 Markdown</button>
+        <button id="btnPng">导出结果卡 PNG</button>
+        <button id="btnJson">导出备份 JSON</button>
+        <button id="btnPrint">打印</button>
+      </div>
+      <p class="footnote" id="storeNote">「保存到本机」写的是浏览器 localStorage，刷新后自动恢复；不上传任何数据。</p>
+    </div>
+  </section>
+
+  <section class="right">
+    <div id="errBox"></div>
+    <div class="card" id="resultCard">
+      <h2>结论 <span id="verdictPill">—</span>
+        <span class="toggle" style="margin-left:auto">
+          <button id="btnViewDay">第一天</button>
+          <button id="btnViewCycle">稳定日循环</button>
+        </span>
+      </h2>
+      <div id="verdictDetail" class="kv"></div>
+      <div class="kpis" id="kpis"></div>
+      <p class="footnote" id="baselineNote"></p>
+    </div>
+
+    <div class="card">
+      <h2>24 小时 CO₂ 曲线 <span class="tag gray" id="curveTag">—</span></h2>
+      <div id="chartWrap"><div id="chart"></div></div>
+      <div class="legend">
+        <span><i style="background:#0f5fa6"></i>浓度曲线</span>
+        <span><i style="background:#b42318"></i>目标浓度</span>
+        <span><i style="background:#eef2f6"></i>关窗时段</span>
+        <span><i style="background:#dcebf7"></i>开窗时段</span>
+        <span><i style="background:#0f7b52"></i>峰值位置</span>
+      </div>
+      <p class="footnote">曲线按每段解析解抽样（每段 12–160 点），段内单调，所以峰值一定出现在段的两端——曲线只是把中间过程画出来，判定用的是端点值。</p>
+    </div>
+
+    <div class="card">
+      <h2>要记住的几条</h2>
+      <ul class="ins" id="insights"></ul>
+    </div>
+
+    <div class="card">
+      <h2>下一步（能直接改到输入上）</h2>
+      <ol class="steps" id="steps"></ol>
+    </div>
+
+    <div class="card">
+      <h2>反推：要压到目标浓度需要什么 <span class="tag" id="revTag">—</span></h2>
+      <div id="revBox"></div>
+    </div>
+
+    <div class="card">
+      <h2>逐段账</h2>
+      <div class="tw"><table id="segTable"><thead><tr>
+        <th>段</th><th>时段</th><th>时长 h</th><th>人</th><th>活动</th><th>通风</th><th>Q m³/h</th><th>段末 ppm</th>
+      </tr></thead><tbody id="segBody"></tbody>
+      <tfoot><tr class="sum"><td>合计</td><td id="tfPeriod">—</td><td id="tfHours">—</td><td colspan="3" id="tfOver" style="text-align:left">—</td><td id="tfQ">—</td><td id="tfEnd">—</td></tr></tfoot></table></div>
+      <details class="note"><summary>每段的 τ、稳态 C_ss、段初、超标分钟、换气量看这里</summary>
+        <div class="tw" style="margin-top:8px"><table id="segTable2"><thead><tr>
+          <th>段</th><th>换气次数</th><th>τ h</th><th>C_ss ppm</th><th>段初 ppm</th><th>超标分钟</th>
+        </tr></thead><tbody id="segBody2"></tbody></table></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>敏感性（每一行完整重算，不是插值）</h2>
+      <div class="tw"><table id="sensTable"><thead><tr>
+        <th>改法</th><th>第一天峰值 ppm</th><th>超标分钟</th><th>稳定峰值 ppm</th><th>判定</th>
+      </tr></thead><tbody id="sensBody"></tbody></table></div>
+    </div>
+
+    <div class="card">
+      <h2>结构自检 <span class="tag gray" id="checkTag">—</span></h2>
+      <ul class="checks" id="checks"></ul>
+      <p class="footnote">这 15 项在每次重算时都会跑一遍；其中「解析解 vs 独立 RK4 数值积分」用的是另一套数值方法，只证明两条路径一致，物理口径本身仍由你自己核查。</p>
+    </div>
+
+    <div class="card">
+      <h2>这本账算不了什么</h2>
+      <ul class="checks">
+        <li>只算 <b>CO₂</b>：不管湿度、温度、异味、颗粒物、甲醛、VOC。</li>
+        <li>把房间当成 <b>一个充分混合的容器</b>：不建模上下分层、开窗边上与房间里侧的差别。</li>
+        <li>开窗换气次数 <b>由你填</b>：不预测天气、风速、风向、温差与热压。</li>
+        <li>不算吸附、植物、化学反应；<b>空气净化器（CADR）在本账里贡献恒为 0</b>。</li>
+        <li>不建模人体差异（体重、年龄、代谢、孕期）与吸烟、燃具等额外来源。</li>
+        <li><b>不引用也不替代任何标准条款</b>：目标浓度与三档判定都是可改的设计选择（三档的 1.5 倍也是）。</li>
+        <li>不联网、不查产品参数、不做购买建议、不做健康诊断。</li>
+      </ul>
+    </div>
+  </section>
+</div>
+<script>/*CORE*/</script>
+<script>/*UI*/</script>
+</body>
+</html>
