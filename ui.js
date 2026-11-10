@@ -210,8 +210,7 @@
     const totQ = v.rows.reduce((a, r) => a + r.Q, 0);
     $('tfPeriod').textContent = v.rows.length ? v.rows[0].startClock + '–' + v.rows[v.rows.length - 1].endClock : '—';
     $('tfHours').textContent = C.fmtFix(totH, 2);
-    $('tfOver').innerHTML = '人·h <b>' + esc(C.fmtFix(totP, 1)) + '</b>　高于目标 <b>' + esc(fmtMinTxt(v.kpis.overMin)) +
-      '</b>　平均通风量 <b>' + esc(C.fmtFix(totQ / Math.max(1, v.rows.length), 2)) + '</b> m³/h';
+    $('tfOver').innerHTML = '人·h <b>' + esc(C.fmtFix(totP, 1)) + '</b>　高于目标 <b>' + esc(fmtMinTxt(v.kpis.overMin)) + '</b>';
     $('tfQ').textContent = '';   /* 平均值并入左侧合并单元格，避免这个窄列把首位数字挤掉 */
     $('tfEnd').textContent = C.fmtFix(v.kpis.end, 0);
     $('segBody2').innerHTML = v.rows.map((r) => '<tr><td>' + esc(r.label) + '</td><td>' + esc(C.fmtFix(r.ach, 2)) + '</td><td>' +

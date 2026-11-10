@@ -49,6 +49,8 @@
   th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
   th{color:var(--ink2);font-weight:600;background:#fafbfc;font-size:12px}
   th:first-child,td:first-child{text-align:left;white-space:normal;word-break:break-word}
+  /* 合计行的那格要装三段信息，允许折行，免得挤到隔壁列的数字上 */
+  #segTable tfoot td{white-space:normal;line-height:1.35;vertical-align:top}
   tbody tr.pick{cursor:pointer}
   tbody tr.pick:hover{background:#f7f9fb}
   tbody tr.sel{background:var(--brand2)}
